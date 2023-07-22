@@ -12,8 +12,8 @@ class Cell {
     GraphicsContext gc;
     Board parent;
 
-    Cell() {
-        this.parent = Board.getInstance();
+    Cell(Board parent) {
+        this.parent = parent;
         this.canvas = new Canvas(50, 50);
         gc = this.canvas.getGraphicsContext2D();
 
