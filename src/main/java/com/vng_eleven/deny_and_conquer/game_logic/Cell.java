@@ -7,6 +7,8 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 
+// a few parts of the game UI are based on Deny and Conquer: https://github.com/scc23/deny-and-conquer/
+// the logic for networking belongs entirely to us (group 11)
 class Cell {
     Canvas canvas;
     GraphicsContext gc;
@@ -33,7 +35,7 @@ class Cell {
     // set up event handlers
     private void setUpEventHandlers() {
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
-            gc.setStroke(Color.RED);
+            gc.setStroke(getPenColor());
             gc.setLineWidth(5);
 
             gc.beginPath();
@@ -48,10 +50,10 @@ class Cell {
 
         canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
             WritableImage snap = canvas.snapshot(null, null);
-            double fillPercent = computeFillPercentage(snap, Color.RED);
+            double fillPercent = computeFillPercentage(snap, getPenColor());
 
             if (fillPercent > 50.0) {
-                fillCell(Color.RED);
+                fillCell(getPenColor());
             }
             else {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
@@ -59,7 +61,6 @@ class Cell {
             }
         });
     }
-
     private double computeFillPercentage(WritableImage snap, Color penColor) {
         // obtains PixelReader from the snap
         PixelReader pixelReader = snap.getPixelReader();
@@ -100,5 +101,9 @@ class Cell {
         gc.setFill(color);
         gc.fillRect(0, 0, w, h);
         drawBorder();
+    }
+
+    private Color getPenColor() {
+        return parent.getPenColor();
     }
 }

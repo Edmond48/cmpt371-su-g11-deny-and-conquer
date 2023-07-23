@@ -2,8 +2,8 @@ package com.vng_eleven.deny_and_conquer;
 
 import com.vng_eleven.deny_and_conquer.game_logic.Board;
 import com.vng_eleven.deny_and_conquer.server_client.Server;
+import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -16,13 +16,13 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.nio.channels.ScatteringByteChannel;
+import java.io.ObjectInputStream;
+import java.net.Socket;
 
 public class MainApplication extends Application {
     Scene mainScene;
     Board board;
+    Socket socket;
 
     @Override
     public void start(Stage stage) {
@@ -39,13 +39,9 @@ public class MainApplication extends Application {
         Button host = new Button("Host game");
         Button join = new Button("Join game");
 
-        host.setOnMouseClicked(event -> {
-            showHostWaitingRoom();
-        });
+        host.setOnMouseClicked(event -> showHostWaitingRoom());
 
-        join.setOnMouseClicked(event -> {
-            showClientWaitingRoom();
-        });
+        join.setOnMouseClicked(event -> showClientConnectRoom());
 
         Parent root = createCentredFrame(host, join);
         host.setStyle("-fx-margin: 10px");
@@ -53,8 +49,7 @@ public class MainApplication extends Application {
         this.mainScene.setRoot(root);
     }
 
-    private void showGame(String IpAddress) {
-        this.board = new Board(IpAddress);
+    private void showGame() {
         GridPane gridPane = board.getGridPane();
 
         Parent root = createCentredFrame(gridPane);
@@ -64,17 +59,48 @@ public class MainApplication extends Application {
 
     private void showHostWaitingRoom() {
         Text text = new Text();
+        Button startNow = new Button("Start now");
+        Text status = new Text();
 
-        Parent root = createCentredFrame(text);
+        Parent root = createCentredFrame(text, startNow, status);
+
+        // start hosting server on this device
         Server server = Server.getInstance();
         server.start();
         String address = server.getServerIPAddress();
-        text.setText("Waiting for players to join. " + "IP address of server is: " + address);
 
+        text.setText("Waiting for players to join. " + "IP address of server is: " + address);
+        startNow.setOnMouseClicked(event -> {
+            boolean success = server.stopWaitingForPlayers();
+            if (!success) {
+                status.setText("Not enough players!");
+            }
+        });
+
+        // connect self to server
+        try {
+            this.socket = new Socket(address, Server.DEFAULT_PORT);
+            this.board = new Board(socket);
+            System.out.println("Client connected to server!");
+        }
+        catch (Exception e) {
+            System.err.println("Client could not connect to server");
+            e.printStackTrace();
+        }
         this.mainScene.setRoot(root);
+
+        waitForServerToStartGame();
     }
 
     private void showClientWaitingRoom() {
+        Text text = new Text("Connected successfully, waiting for other players");
+        Parent root = createCentredFrame(text);
+
+        this.mainScene.setRoot(root);
+        waitForServerToStartGame();
+    }
+
+    private void showClientConnectRoom() {
         Text text = new Text();
         text.setText("Please enter the host's IP address");
 
@@ -82,7 +108,16 @@ public class MainApplication extends Application {
 
         Button connectBtn = new Button("Connect");
         connectBtn.setOnMouseClicked(event -> {
-            showGame(addressField.getText());
+            try {
+                this.socket = new Socket(addressField.getText(), Server.DEFAULT_PORT);
+                this.board = new Board(socket);
+                System.out.println("Client connected to server!");
+                showClientWaitingRoom();
+            }
+            catch (Exception e) {
+                System.err.println("Client could not connect to server");
+                e.printStackTrace();
+            }
         });
 
         Parent root = createCentredFrame(text, addressField, connectBtn);
@@ -90,6 +125,8 @@ public class MainApplication extends Application {
         this.mainScene.setRoot(root);
     }
 
+    ////////////////////////////////////////////////////////
+    // main
     public static void main(String[] args) {
         launch();
     }
@@ -110,5 +147,27 @@ public class MainApplication extends Application {
         }
         root.getChildren().add(inner);
         return root;
+    }
+
+    private void waitForServerToStartGame() {
+        WaitStartMessage wsm = new WaitStartMessage();
+        wsm.start();
+    }
+
+    private class WaitStartMessage extends Thread {
+        @Override
+        public void run() {
+            try {
+                ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
+                TokenMessage message = (TokenMessage) is.readObject();
+                is.close();
+                if (message.isStartGameMessage()) {
+                    board.setPenColor(Board.intToColor(message.getColor()));
+                    showGame();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
