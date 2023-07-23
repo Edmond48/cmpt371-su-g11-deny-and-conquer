@@ -7,7 +7,8 @@ public class TokenMessage implements Serializable {
         START_GAME,
         ATTEMPT,
         OCCUPY,
-        RELEASE
+        RELEASE,
+        NULL
     }
 
     Token token;
@@ -27,6 +28,13 @@ public class TokenMessage implements Serializable {
 
     public boolean isStartGameMessage() {
         return this.token == Token.START_GAME;
+    }
+
+    public TokenMessage nullInstance() {
+        return new TokenMessage(Token.NULL, 0);
+    }
+    public boolean isNull() {
+        return this.token == Token.NULL;
     }
 
     @Override

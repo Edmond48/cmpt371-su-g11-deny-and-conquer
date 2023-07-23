@@ -1,21 +1,28 @@
 package com.vng_eleven.deny_and_conquer.game_logic;
 
 import com.vng_eleven.deny_and_conquer.server_client.Server;
+import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-public class Board {
+public class Board extends Thread {
     public static final int DIMENSION = 8;
 
     GridPane gp;
     Cell[][] cells;
-    Socket socket;
 
+    Socket socket;
+    ObjectInputStream is;
+    ObjectOutputStream os;
+
+    int intPenColor = 0;
     Color penColor = Color.BLACK;
 
-    public Board(Socket socket) {
+    public Board(String IpAddress) {
         cells = new Cell[DIMENSION][DIMENSION];
         gp = new GridPane();
 
@@ -27,19 +34,56 @@ public class Board {
                 gp.add(cells[i][j].getCanvas(), i, j);
             }
         }
-        this.socket = socket;
+        try {
+            this.socket = new Socket(IpAddress, Server.DEFAULT_PORT);
+            // need to create output stream first before input
+            this.os = new ObjectOutputStream(socket.getOutputStream());
+            os.flush();
+            this.is = new ObjectInputStream(socket.getInputStream());
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public Color getPenColor() {
         return penColor;
     }
+    public int getIntPenColor() {
+        return intPenColor;
+    }
 
-    public void setPenColor(Color penColor) {
-        this.penColor = penColor;
+    public void setPenColor(int intPenColor) {
+        this.intPenColor = intPenColor;
+        this.penColor = intToColor(intPenColor);
     }
 
     public GridPane getGridPane() {
         return this.gp;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public synchronized void sendMessage(TokenMessage msg) {
+        try {
+            os.writeObject(msg);
+            os.flush();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized TokenMessage receiveMessage() {
+        try {
+            return (TokenMessage) is.readObject();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static Color intToColor(int x) {

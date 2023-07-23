@@ -1,5 +1,6 @@
 package com.vng_eleven.deny_and_conquer.game_logic;
 
+import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelReader;
@@ -41,6 +42,8 @@ class Cell {
             gc.beginPath();
             gc.moveTo(event.getX(), event.getY());
             gc.stroke();
+
+            parent.sendMessage(new TokenMessage(TokenMessage.Token.ATTEMPT, getIntPenColor()));
         });
 
         canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
@@ -54,10 +57,12 @@ class Cell {
 
             if (fillPercent > 50.0) {
                 fillCell(getPenColor());
+                parent.sendMessage(new TokenMessage(TokenMessage.Token.OCCUPY, getIntPenColor()));
             }
             else {
                 gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
                 drawBorder();
+                parent.sendMessage(new TokenMessage(TokenMessage.Token.RELEASE, getIntPenColor()));
             }
         });
     }
@@ -105,5 +110,9 @@ class Cell {
 
     private Color getPenColor() {
         return parent.getPenColor();
+    }
+
+    private int getIntPenColor() {
+        return parent.getIntPenColor();
     }
 }

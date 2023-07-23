@@ -7,6 +7,8 @@ import java.net.Socket;
 public class ClientConnection extends Thread{
     Server server;
     Socket client;
+    ObjectInputStream is;
+    ObjectOutputStream os;
 
     ClientConnection(Server server) {
         this.server = server;
@@ -15,23 +17,33 @@ public class ClientConnection extends Thread{
     @Override
     public void run() {
         try {
-            client = server.getServerSocket().accept();
+            this.client = server.getServerSocket().accept();
+
+            // need to create output stream first before input and flush it
+            // due to a header in the stream
+            // can cause deadlock
+            this.os = new ObjectOutputStream(client.getOutputStream());
+            os.flush();
+            this.is = new ObjectInputStream(client.getInputStream());
 
             // upon successful connection set up
             server.addConnection(this);
+            System.out.println("Connection to client accepted");
+
+            while (true) {
+                TokenMessage msg = (TokenMessage) this.is.readObject();
+                server.enqueue(msg);
+            }
         }
         catch (Exception e) {
-            System.out.println("Thread did not set up connection");
             e.printStackTrace();
         }
     }
 
     public synchronized void sendMessage(TokenMessage msg) {
         try {
-            ObjectOutputStream oStream = new ObjectOutputStream(client.getOutputStream());
-            oStream.writeObject(msg);
-            oStream.flush();
-            oStream.close();
+            os.writeObject(msg);
+            os.flush();
         }
         catch (Exception e) {
             e.printStackTrace();

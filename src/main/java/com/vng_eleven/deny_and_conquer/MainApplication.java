@@ -79,8 +79,7 @@ public class MainApplication extends Application {
 
         // connect self to server
         try {
-            this.socket = new Socket(address, Server.DEFAULT_PORT);
-            this.board = new Board(socket);
+            setUpBoardConnection(address);
             System.out.println("Client connected to server!");
         }
         catch (Exception e) {
@@ -107,10 +106,10 @@ public class MainApplication extends Application {
         TextField addressField = new TextField();
 
         Button connectBtn = new Button("Connect");
+        String address = addressField.getText();
         connectBtn.setOnMouseClicked(event -> {
             try {
-                this.socket = new Socket(addressField.getText(), Server.DEFAULT_PORT);
-                this.board = new Board(socket);
+                setUpBoardConnection(address);
                 System.out.println("Client connected to server!");
                 showClientWaitingRoom();
             }
@@ -149,6 +148,11 @@ public class MainApplication extends Application {
         return root;
     }
 
+    private void setUpBoardConnection(String address) {
+        this.board = new Board(address);
+        this.socket = board.getSocket();
+    }
+
     private void waitForServerToStartGame() {
         WaitStartMessage wsm = new WaitStartMessage();
         wsm.start();
@@ -158,11 +162,9 @@ public class MainApplication extends Application {
         @Override
         public void run() {
             try {
-                ObjectInputStream is = new ObjectInputStream(socket.getInputStream());
-                TokenMessage message = (TokenMessage) is.readObject();
-                is.close();
+                TokenMessage message = board.receiveMessage();
                 if (message.isStartGameMessage()) {
-                    board.setPenColor(Board.intToColor(message.getColor()));
+                    board.setPenColor(message.getColor());
                     showGame();
                 }
             } catch (Exception e) {
