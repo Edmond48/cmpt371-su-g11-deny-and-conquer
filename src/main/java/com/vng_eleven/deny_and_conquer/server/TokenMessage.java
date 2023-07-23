@@ -1,13 +1,21 @@
-package com.vng_eleven.deny_and_conquer.server_client;
+package com.vng_eleven.deny_and_conquer.server;
 
 import java.io.Serializable;
 
 public class TokenMessage implements Serializable {
     public enum Token {
+        // macro game communications
+        SIZE,
         START_GAME,
+        RESULT,
+        END_GAME,
+
+        // cell operations
         ATTEMPT,
         OCCUPY,
         RELEASE,
+
+        // null instance
         NULL
     }
 
@@ -38,6 +46,12 @@ public class TokenMessage implements Serializable {
 
     public boolean isStartGameMessage() {
         return this.token == Token.START_GAME;
+    }
+    public boolean isEndGameMessage() {
+        return this.token == Token.END_GAME;
+    }
+    public boolean isResultMessage() {
+        return this.token == Token.RESULT;
     }
 
     public static TokenMessage nullInstance() {

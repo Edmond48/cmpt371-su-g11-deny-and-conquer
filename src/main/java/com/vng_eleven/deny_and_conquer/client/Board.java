@@ -1,33 +1,43 @@
-package com.vng_eleven.deny_and_conquer.game_logic;
+package com.vng_eleven.deny_and_conquer.client;
 
-import com.vng_eleven.deny_and_conquer.server_client.Server;
-import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
+import com.vng_eleven.deny_and_conquer.server.Server;
+import com.vng_eleven.deny_and_conquer.server.TokenMessage;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Board extends Thread {
-    public static final int DIMENSION = 8;
+    public static final int DEFAULT_DIMENSION = 8;
 
+    // ui
     GridPane gp;
+    int dimension;
+    int intPenColor = 0;
+    Color penColor = Color.BLACK;
+    // cells
     Cell[][] cells;
 
+    // networking
     Socket socket;
     ObjectInputStream is;
     ObjectOutputStream os;
 
-    int intPenColor = 0;
-    Color penColor = Color.BLACK;
+    // result for later
+    List<Result> results;
 
     public Board(String IpAddress) {
-        cells = new Cell[DIMENSION][DIMENSION];
+        dimension = DEFAULT_DIMENSION;
+        cells = new Cell[dimension][dimension];
         gp = new GridPane();
+        results = new ArrayList<>();
 
-        for (int i = 0; i < DIMENSION; i++) {
-            for (int j = 0; j < DIMENSION; j++) {
+        for (int i = 0; i < dimension; i++) {
+            for (int j = 0; j < dimension; j++) {
 
                 cells[i][j] = new Cell(this, i, j);
 
@@ -40,6 +50,9 @@ public class Board extends Thread {
             this.os = new ObjectOutputStream(socket.getOutputStream());
             os.flush();
             this.is = new ObjectInputStream(socket.getInputStream());
+            TokenMessage sizeMsg = receiveMessage();
+            assert sizeMsg.getToken() == TokenMessage.Token.SIZE;
+            this.dimension = sizeMsg.getColor();
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -49,15 +62,37 @@ public class Board extends Thread {
     // process server messages
     @Override
     public void run() {
-        while (true) {
+        boolean isListening = true;
+        while (isListening) {
             TokenMessage msg = receiveMessage();
             if (msg.isNull()) {
                 continue;
             }
-            process(msg);
+
+            if (msg.isResultMessage()) {
+                // row = score; column = rank
+                results.add(new Result(msg.getColor(), msg.getRow(), msg.getCol()));
+            }
+            if (msg.isEndGameMessage()) {
+                sendMessage(new TokenMessage(TokenMessage.Token.END_GAME, -1, -1, -1));
+                isListening = false;
+            }
+            else {
+                processOperation(msg);
+            }
+        }
+
+        // end all connections
+        try {
+            is.close();
+            os.close();
+            socket.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
         }
     }
-    private void process(TokenMessage msg) {
+    private void processOperation(TokenMessage msg) {
         TokenMessage.Token token = msg.getToken();
         int color = msg.getColor();
         int row = msg.getRow();
@@ -96,7 +131,11 @@ public class Board extends Thread {
         return socket;
     }
 
-    public synchronized void sendMessage(TokenMessage msg) {
+    public List<Result> getResults() {
+        return this.results;
+    }
+
+    public void sendMessage(TokenMessage msg) {
         try {
             os.writeObject(msg);
             os.flush();

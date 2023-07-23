@@ -1,6 +1,6 @@
-package com.vng_eleven.deny_and_conquer.game_logic;
+package com.vng_eleven.deny_and_conquer.client;
 
-import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
+import com.vng_eleven.deny_and_conquer.server.TokenMessage;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelReader;

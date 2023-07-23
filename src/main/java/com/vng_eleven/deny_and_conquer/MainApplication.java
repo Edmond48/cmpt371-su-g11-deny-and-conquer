@@ -1,23 +1,33 @@
 package com.vng_eleven.deny_and_conquer;
 
-import com.vng_eleven.deny_and_conquer.game_logic.Board;
-import com.vng_eleven.deny_and_conquer.server_client.Server;
-import com.vng_eleven.deny_and_conquer.server_client.TokenMessage;
+import com.vng_eleven.deny_and_conquer.client.Board;
+import com.vng_eleven.deny_and_conquer.client.Result;
+import com.vng_eleven.deny_and_conquer.server.Server;
+import com.vng_eleven.deny_and_conquer.server.TokenMessage;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 
-import java.io.ObjectInputStream;
 import java.net.Socket;
+import java.util.Comparator;
+import java.util.List;
 
 public class MainApplication extends Application {
     Scene mainScene;
@@ -35,6 +45,11 @@ public class MainApplication extends Application {
         stage.show();
     }
 
+////////////////////////////////////////////////////////////////////////////////////
+// Phases of the game with UI + logic
+
+    ////////////////////////////////////////////////
+    // Start menu
     private void showMenu() {
         Button host = new Button("Host game");
         Button join = new Button("Join game");
@@ -44,33 +59,26 @@ public class MainApplication extends Application {
         join.setOnMouseClicked(event -> showClientConnectRoom());
 
         Parent root = createCentredFrame(host, join);
-        host.setStyle("-fx-margin: 10px");
-        join.setStyle("-fx-margin: 10px");
+
         this.mainScene.setRoot(root);
     }
 
-    private void showGame() {
-        GridPane gridPane = board.getGridPane();
-
-        Parent root = createCentredFrame(gridPane);
-
-        this.mainScene.setRoot(root);
-        board.start();
-    }
-
+    ////////////////////////////////////////////////
+    // Host and client waiting rooms
     private void showHostWaitingRoom() {
-        Text text = new Text();
+        Text text1 = new Text("Waiting for players to join...");
+        Text text2 = new Text();
         Button startNow = new Button("Start now");
         Text status = new Text();
 
-        Parent root = createCentredFrame(text, startNow, status);
+        Parent root = createCentredFrame(text1, text2, startNow, status);
 
         // start hosting server on this device
         Server server = Server.getInstance();
         server.start();
         String address = server.getServerIPAddress();
+        text2.setText("IP address of server is: " + address);
 
-        text.setText("Waiting for players to join. " + "IP address of server is: " + address);
         startNow.setOnMouseClicked(event -> {
             boolean success = server.stopWaitingForPlayers();
             if (!success) {
@@ -111,7 +119,6 @@ public class MainApplication extends Application {
         connectBtn.setOnMouseClicked(event -> {
             try {
                 setUpBoardConnection(address);
-                System.out.println("Client connected to server!");
                 showClientWaitingRoom();
             }
             catch (Exception e) {
@@ -125,14 +132,92 @@ public class MainApplication extends Application {
         this.mainScene.setRoot(root);
     }
 
-    ////////////////////////////////////////////////////////
-    // main
+    ////////////////////////////////////////////////
+    // Main game
+    private void showGame() {
+
+        Node penColorInfo = createInfoText();
+        GridPane gridPane = board.getGridPane();
+
+        Parent root = createCentredFrame(penColorInfo, gridPane);
+
+        this.mainScene.setRoot(root);
+
+        Task<Board> runGame = new Task() {
+            @Override
+            public Board call() {
+                board.start();
+                try {
+                    board.join();
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+                return board;
+            }
+        };
+        runGame.setOnSucceeded(event -> {
+            // when game is finished
+            showEndScreen();
+        });
+
+        new Thread(runGame).start();
+    }
+    private Node createInfoText() {
+        HBox hbox = new HBox();
+        hbox.setAlignment(Pos.CENTER);
+
+        Text penColorInfo = new Text();
+        penColorInfo.setText("Your pen color is ");
+
+        Canvas canvas = getColorSquare(board.getPenColor());
+
+        hbox.getChildren().addAll(penColorInfo, canvas);
+
+        return hbox;
+    }
+
+    ////////////////////////////////////////////////
+    // End of game
+    private void showEndScreen() {
+        Node penColorInfo = createInfoText();
+        List<Result> results = board.getResults();
+        results.sort(Comparator.comparingInt(Result::getRank));
+
+        VBox table = new VBox();
+        table.setSpacing(3);
+
+        for (int i = 0; i < results.size(); i++) {
+            Result result = results.get(i);
+            HBox row = new HBox();
+            row.setSpacing(3);
+
+            row.getChildren().addAll(
+                    new Text("" + result.getRank()),
+                    getColorSquare(result.getColor()),
+                    new Text("Score: " + result.getScore()));
+            table.getChildren().add(row);
+        }
+
+        Parent root = createCentredFrame(penColorInfo, table);
+        this.mainScene.setRoot(root);
+    }
+    private Canvas getColorSquare(Color color) {
+        Canvas canvas = new Canvas(25, 25);
+        GraphicsContext gc = canvas.getGraphicsContext2D();
+        gc.setFill(color);
+        gc.fillRect(0,0, canvas.getWidth(), canvas.getHeight());
+        return canvas;
+    }
+
+////////////////////////////////////////////////////////
+// main
     public static void main(String[] args) {
         launch();
     }
 
-    ////////////////////////////////////////////////////////
-    // helper
+////////////////////////////////////////////////////////
+// helper
     private Parent createCentredFrame(Node... nodes) {
         HBox root = new HBox();
         root.setAlignment(Pos.CENTER);
@@ -141,6 +226,7 @@ public class MainApplication extends Application {
 
         VBox inner = new VBox();
         inner.setAlignment(Pos.CENTER);
+        inner.setSpacing(5);
 
         for (Node node : nodes) {
             inner.getChildren().add(node);
@@ -158,7 +244,6 @@ public class MainApplication extends Application {
         WaitStartMessage wsm = new WaitStartMessage();
         wsm.start();
     }
-
     private class WaitStartMessage extends Thread {
         @Override
         public void run() {

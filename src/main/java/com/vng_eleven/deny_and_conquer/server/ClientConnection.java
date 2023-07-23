@@ -1,8 +1,11 @@
-package com.vng_eleven.deny_and_conquer.server_client;
+package com.vng_eleven.deny_and_conquer.server;
 
+import javax.crypto.MacSpi;
+import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.net.SocketException;
 
 public class ClientConnection extends Thread{
     Server server;
@@ -25,23 +28,34 @@ public class ClientConnection extends Thread{
             this.os = new ObjectOutputStream(client.getOutputStream());
             os.flush();
             this.is = new ObjectInputStream(client.getInputStream());
+            int dimension = server.dimension;
+            sendMessage(new TokenMessage(TokenMessage.Token.SIZE, dimension, dimension, dimension));
 
             // upon successful connection set up
             server.addConnection(this);
-            System.out.println("Connection to client accepted");
 
-            while (true) {
+            boolean isListening = true;
+            while (isListening) {
                 TokenMessage msg = (TokenMessage) this.is.readObject();
-                server.enqueue(msg);
-                synchronized (this) { wait(10); }
+                if (msg.isEndGameMessage()) {
+                    isListening = false;
+                }
+                else {
+                    server.enqueue(msg);
+                }
             }
+            is.close();
+            os.close();
+            client.close();
         }
-        catch (Exception e) {
+        catch (SocketException e) {
+        }
+        catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    public synchronized void sendMessage(TokenMessage msg) {
+    public void sendMessage(TokenMessage msg) {
         try {
             os.writeObject(msg);
             os.flush();
