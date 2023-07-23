@@ -33,6 +33,7 @@ public class ClientConnection extends Thread{
             while (true) {
                 TokenMessage msg = (TokenMessage) this.is.readObject();
                 server.enqueue(msg);
+                synchronized (this) { wait(10); }
             }
         }
         catch (Exception e) {

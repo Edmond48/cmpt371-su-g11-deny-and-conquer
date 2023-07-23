@@ -29,7 +29,7 @@ public class Board extends Thread {
         for (int i = 0; i < DIMENSION; i++) {
             for (int j = 0; j < DIMENSION; j++) {
 
-                cells[i][j] = new Cell(this);
+                cells[i][j] = new Cell(this, i, j);
 
                 gp.add(cells[i][j].getCanvas(), i, j);
             }
@@ -43,6 +43,36 @@ public class Board extends Thread {
         }
         catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    // process server messages
+    @Override
+    public void run() {
+        while (true) {
+            TokenMessage msg = receiveMessage();
+            if (msg.isNull()) {
+                continue;
+            }
+            process(msg);
+        }
+    }
+    private void process(TokenMessage msg) {
+        TokenMessage.Token token = msg.getToken();
+        int color = msg.getColor();
+        int row = msg.getRow();
+        int col = msg.getCol();
+
+        switch (token) {
+            case ATTEMPT:
+                cells[row][col].attempt(color);
+                break;
+            case OCCUPY:
+                cells[row][col].occupy(color);
+                break;
+            case RELEASE:
+                cells[row][col].release();
+                break;
         }
     }
 
@@ -76,14 +106,14 @@ public class Board extends Thread {
         }
     }
 
-    public synchronized TokenMessage receiveMessage() {
+    public TokenMessage receiveMessage() {
         try {
             return (TokenMessage) is.readObject();
         }
         catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+        return TokenMessage.nullInstance();
     }
 
     public static Color intToColor(int x) {

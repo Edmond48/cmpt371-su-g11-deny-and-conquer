@@ -55,6 +55,7 @@ public class MainApplication extends Application {
         Parent root = createCentredFrame(gridPane);
 
         this.mainScene.setRoot(root);
+        board.start();
     }
 
     private void showHostWaitingRoom() {

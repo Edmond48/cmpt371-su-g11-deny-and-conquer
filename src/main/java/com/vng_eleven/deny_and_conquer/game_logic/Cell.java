@@ -15,8 +15,15 @@ class Cell {
     GraphicsContext gc;
     Board parent;
 
-    Cell(Board parent) {
+    int row;
+    int col;
+    boolean isLocked;
+
+    Cell(Board parent, int row, int col) {
         this.parent = parent;
+        this.row = row;
+        this.col = col;
+        this.isLocked = false;
         this.canvas = new Canvas(50, 50);
         gc = this.canvas.getGraphicsContext2D();
 
@@ -36,6 +43,9 @@ class Cell {
     // set up event handlers
     private void setUpEventHandlers() {
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
+            if (this.isLocked) {
+                return;
+            }
             gc.setStroke(getPenColor());
             gc.setLineWidth(5);
 
@@ -43,26 +53,32 @@ class Cell {
             gc.moveTo(event.getX(), event.getY());
             gc.stroke();
 
-            parent.sendMessage(new TokenMessage(TokenMessage.Token.ATTEMPT, getIntPenColor()));
+            parent.sendMessage(newMessage(TokenMessage.Token.ATTEMPT));
         });
 
         canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
+            if (this.isLocked) {
+                return;
+            }
             gc.lineTo(event.getX(), event.getY());
             gc.stroke();
         });
 
         canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
+            if (this.isLocked) {
+                return;
+            }
             WritableImage snap = canvas.snapshot(null, null);
             double fillPercent = computeFillPercentage(snap, getPenColor());
 
             if (fillPercent > 50.0) {
                 fillCell(getPenColor());
-                parent.sendMessage(new TokenMessage(TokenMessage.Token.OCCUPY, getIntPenColor()));
+                isLocked = true;
+                parent.sendMessage(newMessage(TokenMessage.Token.OCCUPY));
             }
             else {
-                gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
-                drawBorder();
-                parent.sendMessage(new TokenMessage(TokenMessage.Token.RELEASE, getIntPenColor()));
+                clearCell();
+                parent.sendMessage(newMessage(TokenMessage.Token.RELEASE));
             }
         });
     }
@@ -91,6 +107,30 @@ class Cell {
     }
 
     /////////////////////////////////////////////////////////////////////
+    // operations
+    public void attempt(int color) {
+        if (color == getIntPenColor()) {
+            return;
+        }
+        drawCross(Board.intToColor(color));
+        isLocked = true;
+    }
+
+    public void occupy(int color) {
+        if (color == getIntPenColor()) {
+            return;
+        }
+        fillCell(Board.intToColor(color));
+        isLocked = true;
+    }
+
+    public void release() {
+        clearCell();
+        isLocked = false;
+    }
+
+
+    /////////////////////////////////////////////////////////////////////
     // helper methods
     private void drawBorder() {
         gc.setStroke(Color.BLACK);
@@ -107,6 +147,21 @@ class Cell {
         gc.fillRect(0, 0, w, h);
         drawBorder();
     }
+    private void clearCell() {
+        gc.clearRect(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawBorder();
+    }
+
+    private void drawCross(Color color) {
+        double w = canvas.getWidth();
+        double h = canvas.getHeight();
+
+        gc.setStroke(color);
+        gc.setLineWidth(3);
+        gc.strokeLine(0, 0, w, h);
+        gc.strokeLine(w, 0, 0, h);
+        drawBorder();
+    }
 
     private Color getPenColor() {
         return parent.getPenColor();
@@ -114,5 +169,9 @@ class Cell {
 
     private int getIntPenColor() {
         return parent.getIntPenColor();
+    }
+
+    private TokenMessage newMessage(TokenMessage.Token token) {
+        return new TokenMessage(token, getIntPenColor(), row, col);
     }
 }

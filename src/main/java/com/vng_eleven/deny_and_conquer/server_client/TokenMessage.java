@@ -13,10 +13,14 @@ public class TokenMessage implements Serializable {
 
     Token token;
     int color;
+    int row;
+    int col;
 
-    public TokenMessage(Token token, int color) {
+    public TokenMessage(Token token, int color, int row, int col) {
         this.token = token;
         this.color = color;
+        this.row = row;
+        this.col = col;
     }
 
     public Token getToken() {
@@ -25,13 +29,19 @@ public class TokenMessage implements Serializable {
     public int getColor() {
         return color;
     }
+    public int getRow() {
+        return this.row;
+    }
+    public int getCol() {
+        return this.col;
+    }
 
     public boolean isStartGameMessage() {
         return this.token == Token.START_GAME;
     }
 
-    public TokenMessage nullInstance() {
-        return new TokenMessage(Token.NULL, 0);
+    public static TokenMessage nullInstance() {
+        return new TokenMessage(Token.NULL, 0, -1, -1);
     }
     public boolean isNull() {
         return this.token == Token.NULL;
@@ -39,6 +49,6 @@ public class TokenMessage implements Serializable {
 
     @Override
     public String toString() {
-        return "[" + token.toString() + ", color:" + color + "]";
+        return "[" + token.toString() + ", color:" + color + "(" + row + ", " + col + ")]";
     }
 }
