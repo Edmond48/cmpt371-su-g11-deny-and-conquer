@@ -46,7 +46,7 @@ public class Server extends Thread{
         clientThreads = new ArrayList<>();
         msgQueue = new LinkedBlockingQueue<>();
 
-        dimension = Board.DEFAULT_DIMENSION;
+        dimension = 3;//Board.DEFAULT_DIMENSION;
         isLocked = new boolean[dimension][dimension];
         occupiedCells = 0;
         totalCells = dimension * dimension;

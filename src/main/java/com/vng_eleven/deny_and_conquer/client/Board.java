@@ -32,10 +32,27 @@ public class Board extends Thread {
 
     public Board(String IpAddress) {
         dimension = DEFAULT_DIMENSION;
-        cells = new Cell[dimension][dimension];
+
         gp = new GridPane();
         results = new ArrayList<>();
 
+        try {
+            this.socket = new Socket(IpAddress, Server.DEFAULT_PORT);
+            // need to create output stream first before input
+            this.os = new ObjectOutputStream(socket.getOutputStream());
+            os.flush();
+            this.is = new ObjectInputStream(socket.getInputStream());
+
+            TokenMessage sizeMsg = receiveMessage();
+            assert sizeMsg.getToken() == TokenMessage.Token.SIZE;
+            this.dimension = sizeMsg.getColor();
+            System.out.println(dimension);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        cells = new Cell[dimension][dimension];
         for (int i = 0; i < dimension; i++) {
             for (int j = 0; j < dimension; j++) {
 
@@ -43,19 +60,6 @@ public class Board extends Thread {
 
                 gp.add(cells[i][j].getCanvas(), i, j);
             }
-        }
-        try {
-            this.socket = new Socket(IpAddress, Server.DEFAULT_PORT);
-            // need to create output stream first before input
-            this.os = new ObjectOutputStream(socket.getOutputStream());
-            os.flush();
-            this.is = new ObjectInputStream(socket.getInputStream());
-            TokenMessage sizeMsg = receiveMessage();
-            assert sizeMsg.getToken() == TokenMessage.Token.SIZE;
-            this.dimension = sizeMsg.getColor();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
         }
     }
 

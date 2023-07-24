@@ -1,6 +1,5 @@
 package com.vng_eleven.deny_and_conquer.server;
 
-import javax.crypto.MacSpi;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
