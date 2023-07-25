@@ -46,7 +46,6 @@ public class Board extends Thread {
             TokenMessage sizeMsg = receiveMessage();
             assert sizeMsg.getToken() == TokenMessage.Token.SIZE;
             this.dimension = sizeMsg.getColor();
-            System.out.println(dimension);
         }
         catch (Exception e) {
             e.printStackTrace();

@@ -89,7 +89,6 @@ public class MainApplication extends Application {
         // connect self to server
         try {
             setUpBoardConnection(address);
-            System.out.println("Client connected to server!");
         }
         catch (Exception e) {
             System.err.println("Client could not connect to server");
