@@ -19,6 +19,7 @@ public class ClientConnection extends Thread{
     @Override
     public void run() {
         try {
+            // server accept connection
             this.client = server.getServerSocket().accept();
 
             // need to create output stream first before input and flush it
@@ -54,6 +55,7 @@ public class ClientConnection extends Thread{
         }
     }
 
+    // server uses this call to communicate with clients
     public void sendMessage(TokenMessage msg) {
         try {
             os.writeObject(msg);

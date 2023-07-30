@@ -37,15 +37,18 @@ public class Board extends Thread {
         results = new ArrayList<>();
 
         try {
+            // open socket connection
             this.socket = new Socket(IpAddress, Server.DEFAULT_PORT);
+
             // need to create output stream first before input
             this.os = new ObjectOutputStream(socket.getOutputStream());
             os.flush();
             this.is = new ObjectInputStream(socket.getInputStream());
 
+            // receive the uniform board dimension from the sever
             TokenMessage sizeMsg = receiveMessage();
             assert sizeMsg.getToken() == TokenMessage.Token.SIZE;
-            this.dimension = sizeMsg.getColor();
+            this.dimension = sizeMsg.getColor(); // the field 'color' (int) is the size
         }
         catch (Exception e) {
             e.printStackTrace();
@@ -73,10 +76,12 @@ public class Board extends Thread {
             }
 
             if (msg.isResultMessage()) {
-                // row = score; column = rank
+                // receive as many RESULT messages as there are players
+                // row is the score and column is the rank
                 results.add(new Result(msg.getColor(), msg.getRow(), msg.getCol()));
             }
             if (msg.isEndGameMessage()) {
+                // receive message to stop the game
                 sendMessage(new TokenMessage(TokenMessage.Token.END_GAME, -1, -1, -1));
                 isListening = false;
             }
@@ -95,6 +100,8 @@ public class Board extends Thread {
             e.printStackTrace();
         }
     }
+
+    // perform operations on the local cells
     private void processOperation(TokenMessage msg) {
         TokenMessage.Token token = msg.getToken();
         int color = msg.getColor();
@@ -114,6 +121,31 @@ public class Board extends Thread {
         }
     }
 
+    // send message to server through client connection
+    // cells call this method to send local operations to the server
+    public void sendMessage(TokenMessage msg) {
+        try {
+            os.writeObject(msg);
+            os.flush();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // receive message from server through client connection
+    public TokenMessage receiveMessage() {
+        try {
+            return (TokenMessage) is.readObject();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return TokenMessage.nullInstance();
+    }
+
+    //////////////////////////////////////////////////////////////
+    // setters and getters
     public Color getPenColor() {
         return penColor;
     }
@@ -138,26 +170,7 @@ public class Board extends Thread {
         return this.results;
     }
 
-    public void sendMessage(TokenMessage msg) {
-        try {
-            os.writeObject(msg);
-            os.flush();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    public TokenMessage receiveMessage() {
-        try {
-            return (TokenMessage) is.readObject();
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
-        return TokenMessage.nullInstance();
-    }
-
+    // helper method
     public static Color intToColor(int x) {
         int r = (x>>16)&0xFF;
         int g = (x>>8)&0xFF;

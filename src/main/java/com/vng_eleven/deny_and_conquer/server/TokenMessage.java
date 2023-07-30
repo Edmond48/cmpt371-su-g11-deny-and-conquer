@@ -5,15 +5,15 @@ import java.io.Serializable;
 public class TokenMessage implements Serializable {
     public enum Token {
         // macro game communications
-        SIZE,
+        SIZE,       // server sends this so all clients have the same board size
         START_GAME,
-        RESULT,
+        RESULT,     // announce the results
         END_GAME,
 
         // cell operations
-        ATTEMPT,
-        OCCUPY,
-        RELEASE,
+        ATTEMPT,    // temporarily lock a cell
+        OCCUPY,     // permanently lock a cell
+        RELEASE,    // unlock a temporary cell
 
         // null instance
         NULL
@@ -61,6 +61,7 @@ public class TokenMessage implements Serializable {
         return this.token == Token.NULL;
     }
 
+    // for debugging
     @Override
     public String toString() {
         return "[" + token.toString() + ", color:" + color + "(" + row + ", " + col + ")]";

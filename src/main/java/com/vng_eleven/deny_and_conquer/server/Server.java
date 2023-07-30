@@ -46,7 +46,11 @@ public class Server extends Thread{
         clientThreads = new ArrayList<>();
         msgQueue = new LinkedBlockingQueue<>();
 
+        //////////////////////////////////////////////////////
+        // Establishing board size here will determine it for all players
         dimension = 3;//Board.DEFAULT_DIMENSION;
+        /////////////////////////////////////////////////////
+
         isLocked = new boolean[dimension][dimension];
         occupiedCells = 0;
         totalCells = dimension * dimension;
@@ -73,6 +77,7 @@ public class Server extends Thread{
                     process(msg);
                 }
                 if (occupiedCells >= totalCells) {
+                    // game finished
                     announceResult();
                     break;
                 }
@@ -158,25 +163,22 @@ public class Server extends Thread{
         }
     }
 
+    // client connections uses this to give server their messages
     public synchronized void enqueue(TokenMessage msg) {
         msgQueue.add(msg);
     }
 
-    public ServerSocket getServerSocket() {
-        return this.server;
-    }
-
-    public String getServerIPAddress() {
-        return ipAddress;
-    }
-
-
+    // client connections add a connection when one is established successfully
     public synchronized void addConnection(ClientConnection cc) {
         clientThreads.add(cc);
         if (clientThreads.size() == MAX_NUMBER_OF_PLAYERS) {
             stopWaitingForPlayers();
         }
     }
+
+    // this method is called to attempt to start the game
+    // used when the maximum number of players is achieved
+    // OR when the host clicks "Start Game"
     public synchronized boolean stopWaitingForPlayers() {
         if (clientThreads.size() > 1) {
             this.notify();
@@ -185,13 +187,24 @@ public class Server extends Thread{
         return false;
     }
 
+    ///////////////////////////////////////////////////////////////
+    // getters
+    public ServerSocket getServerSocket() {
+        return this.server;
+    }
+
+    public String getServerIPAddress() {
+        return ipAddress;
+    }
+
+    // helper method
+    private static int minuteToMilli(int minute) {
+        return minute * 60000;
+    }
+
     // singleton instance
     private static final Server serverInstance = new Server();
     public static Server getInstance() {
         return serverInstance;
-    }
-
-    private static int minuteToMilli(int minute) {
-        return minute * 60000;
     }
 }

@@ -2,6 +2,7 @@ package com.vng_eleven.deny_and_conquer.client;
 
 import javafx.scene.paint.Color;
 
+// object used to better handle the RESULT message on the client side
 public class Result {
     Color color;
     int score;

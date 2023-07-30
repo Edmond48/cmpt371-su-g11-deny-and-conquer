@@ -42,6 +42,7 @@ class Cell {
     /////////////////////////////////////////////////////////////////////
     // set up event handlers
     private void setUpEventHandlers() {
+        // starts drawing, sends an ATTEMPT message
         canvas.addEventHandler(MouseEvent.MOUSE_PRESSED, event -> {
             if (this.isLocked) {
                 return;
@@ -56,6 +57,7 @@ class Cell {
             parent.sendMessage(newMessage(TokenMessage.Token.ATTEMPT));
         });
 
+        // continue drawing, does not send any message
         canvas.addEventHandler(MouseEvent.MOUSE_DRAGGED, event -> {
             if (this.isLocked) {
                 return;
@@ -64,6 +66,7 @@ class Cell {
             gc.stroke();
         });
 
+        // stop drawing, send a RELEASE if <= 50% and a OCCUPY if > 50%
         canvas.addEventHandler(MouseEvent.MOUSE_RELEASED, event -> {
             if (this.isLocked) {
                 return;
@@ -107,7 +110,9 @@ class Cell {
     }
 
     /////////////////////////////////////////////////////////////////////
-    // operations
+    // operations performed by both:
+    // + the local player
+    // + the messages from the server (by other players)
     public void attempt(int color) {
         if (color == getIntPenColor()) {
             return;
