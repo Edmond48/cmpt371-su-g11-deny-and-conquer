@@ -110,9 +110,8 @@ class Cell {
     }
 
     /////////////////////////////////////////////////////////////////////
-    // operations performed by both:
-    // + the local player
-    // + the messages from the server (by other players)
+    // operations performed by other players
+    // the Board makes use of these methods
     public void attempt(int color) {
         if (color == getIntPenColor()) {
             return;
