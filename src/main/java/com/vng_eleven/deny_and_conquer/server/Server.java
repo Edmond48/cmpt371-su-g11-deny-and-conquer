@@ -121,6 +121,8 @@ public class Server extends Thread{
     private void process(TokenMessage message) {
         switch (message.getToken()) {
             case ATTEMPT:
+                if(isLocked[message.getRow()][message.getCol()])
+                    return;
                 isLocked[message.getRow()][message.getCol()] = true;
                 broadcast(message);
                 break;
